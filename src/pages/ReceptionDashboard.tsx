@@ -68,11 +68,11 @@ const ReceptionDashboard = () => {
 
   const filteredPatients = searchQuery
     ? patients.filter(
-        (p) =>
-          `${p.firstName} ${p.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          p.patientId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          p.rfidUid.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+      (p) =>
+        `${p.firstName} ${p.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.patientId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.rfidUid.toLowerCase().includes(searchQuery.toLowerCase())
+    )
     : [];
 
   return (
@@ -131,9 +131,6 @@ const ReceptionDashboard = () => {
                           <Button size="sm" onClick={() => handleMarkArrived(scannedPatient.patientId)}>
                             Mark Arrived
                           </Button>
-                          <Button size="sm" variant="outline" onClick={handleReplaceLostCard}>
-                            <AlertTriangle className="h-3 w-3 mr-1" /> Replace Card
-                          </Button>
                         </div>
                       </div>
                     ) : (
@@ -141,9 +138,14 @@ const ReceptionDashboard = () => {
                         <div className="rounded-lg bg-warning/10 border border-warning/20 p-3">
                           <p className="text-sm text-foreground">No patient found for this card.</p>
                         </div>
-                        <Button size="sm" onClick={() => setShowRegister(true)}>
-                          Register New Patient
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button size="sm" onClick={() => setShowRegister(true)}>
+                            Register New Patient
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={handleReplaceLostCard}>
+                            <AlertTriangle className="h-3 w-3 mr-1" /> Replace Card
+                          </Button>
+                        </div>
                       </div>
                     )}
                   </div>
