@@ -1,9 +1,11 @@
 {
-  "name": "vite_react_shadcn_ts",
+  "name": "rmeditracker",
+  "description": "RMediTracker Standalone Desktop Application",
+  "author": "RMediTracker Team",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
-  "main": "main.js",
+  "main": "main.cjs",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -64,11 +66,12 @@
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.9",
-    "zod": "^3.25.76"
+    "zod": "^3.25.76",
+    "serialport": "^13.0.0",
+    "@serialport/bindings-cpp": "^13.0.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
-    "@serialport/bindings-cpp": "^13.0.1",
     "@tailwindcss/typography": "^0.5.16",
     "@tauri-apps/cli": "^2.10.0",
     "@testing-library/jest-dom": "^6.6.0",
@@ -79,7 +82,7 @@
     "@vitejs/plugin-react-swc": "^3.11.0",
     "autoprefixer": "^10.4.21",
     "concurrently": "^9.2.1",
-    "electron": "^40.6.0",
+    "electron": "32.2.0",
     "electron-builder": "^26.8.1",
     "eslint": "^9.32.0",
     "eslint-plugin-react-hooks": "^5.2.0",
@@ -87,7 +90,6 @@
     "globals": "^15.15.0",
     "jsdom": "^20.0.3",
     "postcss": "^8.5.6",
-    "serialport": "^13.0.0",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.38.0",
@@ -100,8 +102,8 @@
     "productName": "RMediTracker",
     "files": [
       "dist/**/*",
-      "main.js",
-      "preload.js",
+      "main.cjs",
+      "preload.cjs",
       "package.json"
     ],
     "directories": {
@@ -114,6 +116,10 @@
       "oneClick": true,
       "allowToChangeInstallationDirectory": false,
       "createDesktopShortcut": true
-    }
+    },
+    "asarUnpack": [
+      "**/node_modules/serialport/**/*",
+      "**/node_modules/@serialport/bindings-cpp/**/*"
+    ]
   }
 }

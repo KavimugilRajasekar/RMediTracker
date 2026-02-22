@@ -1,4 +1,6 @@
+# ==============================
 # Logs
+# ==============================
 logs
 *.log
 npm-debug.log*
@@ -7,18 +9,80 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# ==============================
+# Runtime data
+# ==============================
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# ==============================
+# Dependency directories
+# ==============================
+node_modules/
+
+# ==============================
+# Build output
+# ==============================
+dist/
+dist-ssr/
+build/
+out/
+release/
+
+# Electron Builder / Electron Forge
+electron-builder.yml
+electron-builder.json
+*.blockmap
+
+# ==============================
+# Environment files
+# ==============================
+.env
+.env.*
 *.local
 
-# Editor directories and files
+# ==============================
+# OS generated files
+# ==============================
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ==============================
+# Editor / IDE
+# ==============================
 .vscode/*
 !.vscode/extensions.json
-.idea
-.DS_Store
+.idea/
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+*.code-workspace
+
+# ==============================
+# TypeScript (if used)
+# ==============================
+*.tsbuildinfo
+
+# ==============================
+# Coverage
+# ==============================
+coverage/
+
+# ==============================
+# Cache
+# ==============================
+.cache/
+.parcel-cache/
+.eslintcache
+
+# ==============================
+# Temporary files
+# ==============================
+tmp/
+temp/
