@@ -29,7 +29,7 @@ const PatientRegistrationDialog = ({ open, onClose, onRegister, scannedUid }: Pr
 
   const handleSubmit = () => {
     if (!form.firstName || !form.lastName || !form.age || !form.gender) return;
-    
+
     const patient: Patient = {
       id: crypto.randomUUID(),
       patientId: generatePatientId(),

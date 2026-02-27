@@ -1,6 +1,9 @@
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Patient, Visit } from "@/types/patient";
-import { mockPatients, mockVisits } from "@/data/mockData";
+import {
+  getPatients, getVisits,
+  addPatient, addVisit, updatePatient,
+} from "@/lib/store";
 import AppHeader from "@/components/AppHeader";
 import RfidScanner from "@/components/RfidScanner";
 import PatientRegistrationDialog from "@/components/PatientRegistrationDialog";
@@ -12,23 +15,26 @@ import { toast } from "sonner";
 import { Users, UserCheck, Search, CreditCard, AlertTriangle } from "lucide-react";
 
 const ReceptionDashboard = () => {
-  const [patients, setPatients] = useState<Patient[]>(mockPatients);
-  const [visits, setVisits] = useState<Visit[]>(mockVisits);
+  const [patients, setPatients] = useState<Patient[]>(() => getPatients());
+  const [visits, setVisits] = useState<Visit[]>(() => getVisits());
   const [isScanning, setIsScanning] = useState(false);
   const [scannedPatient, setScannedPatient] = useState<Patient | null>(null);
   const [scannedUid, setScannedUid] = useState<string>("");
   const [showRegister, setShowRegister] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const todayVisits = visits.filter((v) => {
-    const today = new Date().toDateString();
-    return new Date(v.arrivedAt).toDateString() === today;
-  });
+  // ── helpers to sync state + store ──────────────────────────────────────────
+  const refresh = () => { setPatients(getPatients()); setVisits(getVisits()); };
+
+  // ── Stats ───────────────────────────────────────────────────────────────────
+  const todayVisits = visits.filter(v => new Date(v.arrivedAt).toDateString() === new Date().toDateString());
   const arrivedCount = todayVisits.filter(v => v.status === "Arrived").length;
 
-  const handleScan = (uid: string) => {
+  // ── RFID Scan ────────────────────────────────────────────────────────────────
+  const handleScan = useCallback((uid: string) => {
+    // Force a fresh read of patients from store if needed, or rely on state
     setScannedUid(uid);
-    const found = patients.find((p) => p.rfidUid === uid);
+    const found = getPatients().find(p => p.rfidUid === uid);
     if (found) {
       setScannedPatient(found);
       toast.success(`Patient found: ${found.firstName} ${found.lastName}`);
@@ -36,49 +42,50 @@ const ReceptionDashboard = () => {
       setScannedPatient(null);
       toast.info("Unknown card. Register a new patient or replace a lost card.");
     }
-  };
+  }, []);
 
+  // ── Mark Arrived ─────────────────────────────────────────────────────────────
   const handleMarkArrived = (patientId: string) => {
     const existing = visits.find(v => v.patientId === patientId && v.status === "Arrived");
-    if (existing) {
-      toast.warning("Patient already marked as Arrived.");
-      return;
-    }
-    const newVisit: Visit = {
-      id: crypto.randomUUID(),
-      patientId,
-      status: "Arrived",
-      arrivedAt: new Date().toISOString(),
-    };
-    setVisits((prev) => [...prev, newVisit]);
+    if (existing) { toast.warning("Patient already marked as Arrived."); return; }
+    const visit: Visit = { id: crypto.randomUUID(), patientId, status: "Arrived", arrivedAt: new Date().toISOString() };
+    addVisit(visit);
+    refresh();
     toast.success("Patient marked as Arrived and added to Doctor's queue.");
   };
 
+  // ── Register ─────────────────────────────────────────────────────────────────
   const handleRegister = (patient: Patient) => {
-    setPatients((prev) => [...prev, patient]);
+    addPatient(patient);
+    refresh();
     handleMarkArrived(patient.patientId);
     toast.success(`Patient ${patient.firstName} registered with ID ${patient.patientId}`);
   };
 
+  // ── Replace Card ─────────────────────────────────────────────────────────────
   const handleReplaceLostCard = () => {
     if (!scannedPatient) return;
-    // In a real app this would deactivate old and assign new
+    updatePatient(scannedPatient.patientId, {
+      rfidUid: scannedUid,
+      rfidHistory: [...scannedPatient.rfidHistory, { uid: scannedUid, issuedAt: new Date().toISOString() }],
+    });
+    refresh();
     toast.success(`RFID card replaced for ${scannedPatient.firstName} ${scannedPatient.lastName}`);
   };
 
+  // ── Search ───────────────────────────────────────────────────────────────────
   const filteredPatients = searchQuery
-    ? patients.filter(
-      (p) =>
-        `${p.firstName} ${p.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.patientId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.rfidUid.toLowerCase().includes(searchQuery.toLowerCase())
-    )
+    ? patients.filter(p =>
+      `${p.firstName} ${p.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.patientId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.rfidUid.toLowerCase().includes(searchQuery.toLowerCase()))
     : [];
 
   return (
     <div className="min-h-screen bg-background">
       <AppHeader />
       <div className="mx-auto max-w-6xl p-6 space-y-6">
+
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4">
           {[
@@ -101,7 +108,7 @@ const ReceptionDashboard = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* RFID Scanner Section */}
+          {/* RFID Scanner */}
           <div className="space-y-4">
             <Card className="shadow-card">
               <CardHeader className="pb-3">
@@ -127,11 +134,9 @@ const ReceptionDashboard = () => {
                             {scannedPatient.patientId} • Age {scannedPatient.age} • {scannedPatient.gender}
                           </p>
                         </div>
-                        <div className="flex gap-2">
-                          <Button size="sm" onClick={() => handleMarkArrived(scannedPatient.patientId)}>
-                            Mark Arrived
-                          </Button>
-                        </div>
+                        <Button size="sm" onClick={() => handleMarkArrived(scannedPatient.patientId)}>
+                          Mark Arrived
+                        </Button>
                       </div>
                     ) : (
                       <div className="space-y-3">
@@ -165,22 +170,18 @@ const ReceptionDashboard = () => {
                 <Input
                   placeholder="Search by name, ID, or RFID..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={e => setSearchQuery(e.target.value)}
                   className="pl-9"
                 />
               </div>
               <div className="space-y-2 max-h-96 overflow-y-auto">
-                {(searchQuery ? filteredPatients : patients).map((patient) => {
+                {(searchQuery ? filteredPatients : patients).map(patient => {
                   const visit = visits.find(v => v.patientId === patient.patientId && v.status === "Arrived");
                   return (
                     <div key={patient.id} className="flex items-center justify-between rounded-lg border border-border p-3 hover:bg-secondary/50 transition-colors">
                       <div>
-                        <p className="text-sm font-semibold text-foreground">
-                          {patient.firstName} {patient.lastName}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {patient.patientId} • {patient.phone}
-                        </p>
+                        <p className="text-sm font-semibold text-foreground">{patient.firstName} {patient.lastName}</p>
+                        <p className="text-xs text-muted-foreground">{patient.patientId} • {patient.phone}</p>
                       </div>
                       <div className="flex items-center gap-2">
                         {visit && <StatusBadge status="Arrived" />}
@@ -211,7 +212,7 @@ const ReceptionDashboard = () => {
               <p className="py-6 text-center text-sm text-muted-foreground">No visits recorded today.</p>
             ) : (
               <div className="space-y-2">
-                {todayVisits.map((visit) => {
+                {todayVisits.map(visit => {
                   const patient = patients.find(p => p.patientId === visit.patientId);
                   return (
                     <div key={visit.id} className="flex items-center justify-between rounded-lg border border-border p-3">
