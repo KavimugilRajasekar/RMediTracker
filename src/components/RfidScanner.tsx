@@ -1,15 +1,17 @@
 import { useState, useEffect, useRef } from "react";
-import { Wifi, CreditCard, Bug, ChevronDown, ChevronUp } from "lucide-react";
+import { Wifi, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSerial } from "@/contexts/SerialContext";
 
 interface RfidScannerProps {
   onScan: (uid: string) => void;
+  onScanStart?: () => void;
   isScanning: boolean;
   setIsScanning: (v: boolean) => void;
+  disabled?: boolean;
 }
 
-const RfidScanner = ({ onScan, isScanning, setIsScanning }: RfidScannerProps) => {
+const RfidScanner = ({ onScan, onScanStart, isScanning, setIsScanning, disabled }: RfidScannerProps) => {
   const { isConnected, lastScan, rawLog } = useSerial();
   const [showDebug, setShowDebug] = useState(false);
   const [lastRequestTime, setLastRequestTime] = useState(0);
@@ -24,35 +26,31 @@ const RfidScanner = ({ onScan, isScanning, setIsScanning }: RfidScannerProps) =>
     if (!lastScan || !scanRequested.current) return;
 
     // Grace period check: 
-    // Usually users tap and then click, or click while tapping. 
-    // We allow a 2-second window for "buffered" scans to feel more natural.
-    const GRACE_PERIOD_MS = 2000;
+    const GRACE_PERIOD_MS = 5000;
     const isFreshEnough = lastScan.timestamp >= (lastRequestTime - GRACE_PERIOD_MS);
 
     if (!isFreshEnough) {
-      console.log('[Scanner] Skipping truly stale scan:', lastScan.uid, 'Age:', Date.now() - lastScan.timestamp, 'ms');
+      console.log('[Scanner] Skipping stale scan:', lastScan.uid, 'Age:', Date.now() - lastScan.timestamp, 'ms');
       return;
     }
 
-    console.log('[Scanner] Captured scan:', lastScan.uid, 'Time Diff:', lastScan.timestamp - lastRequestTime, 'ms');
+    console.log('[Scanner] Valid scan detected:', lastScan.uid);
 
-    // Stop waiting immediately to prevent double-captures from a single swipe
+    // Stop waiting and clear state immediately
     scanRequested.current = false;
     setWaitingLabel("");
+    setIsScanning(false);
 
-    // Visual feedback "Searching..." -> "Success!"
-    setIsScanning(true); // Ensure pulse is visible
-    const t = setTimeout(() => {
-      onScan(lastScan.uid);
-      setIsScanning(false);
-    }, 600);
-    return () => clearTimeout(t);
+    // Trigger the scan result in the parent dashboard
+    onScan(lastScan.uid);
   }, [lastScan, lastRequestTime, onScan, setIsScanning]);
 
   // ── Start waiting for the next card swipe from the COM port ───────────────
   const requestScan = (label: string) => {
     if (!isConnected) return;
-    // Set baseline time to ignore old buffered data
+    console.log('[Scanner] Scan requested:', label);
+
+    onScanStart?.();
     setLastRequestTime(Date.now());
     scanRequested.current = true;
     setIsScanning(true);
@@ -67,32 +65,45 @@ const RfidScanner = ({ onScan, isScanning, setIsScanning }: RfidScannerProps) =>
   };
 
   return (
-    <div className="space-y-4">
+    <div className={`space-y-4 transition-all duration-500 ${disabled ? "opacity-40 grayscale pointer-events-none cursor-not-allowed scale-[0.98]" : ""}`}>
       <div className="rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-6 text-center space-y-4">
-        {/* Icon */}
-        <div className={`mx-auto flex h-16 w-16 items-center justify-center rounded-2xl transition-all duration-300 ${isScanning ? "gradient-medical animate-pulse-soft scale-105" : "bg-secondary"
-          }`}>
-          {isScanning
-            ? <Wifi className="h-8 w-8 text-primary-foreground" />
-            : <CreditCard className="h-8 w-8 text-muted-foreground" />
-          }
+        {/* Icon with Ripple Effect */}
+        <div className="relative mx-auto flex h-20 w-20 items-center justify-center">
+          {isScanning && (
+            <div className="absolute inset-0 animate-ping rounded-full bg-primary/20 duration-1000" />
+          )}
+          <div className={`relative z-10 flex h-16 w-16 items-center justify-center rounded-2xl transition-all duration-500 ${isScanning
+            ? "gradient-medical shadow-medical scale-110 rotate-3"
+            : "bg-secondary grayscale opacity-60"
+            }`}>
+            {isScanning
+              ? <Wifi className="h-8 w-8 text-primary-foreground animate-pulse" />
+              : <CreditCard className="h-8 w-8 text-muted-foreground" />
+            }
+          </div>
         </div>
 
         {/* Status text */}
         {isScanning ? (
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-primary">
-              {waitingLabel || "Scanning RFID Card…"}
+          <div className="space-y-3 animate-in fade-in zoom-in-95 duration-300">
+            <p className="text-xs font-bold text-primary tracking-widest uppercase">
+              {waitingLabel || "TAP RFID CARD NOW"}
             </p>
-            <div className="mx-auto h-1 w-32 overflow-hidden rounded-full bg-primary/20">
-              <div className="h-full animate-scan rounded-full bg-primary" />
+            <div className="mx-auto flex gap-1 justify-center">
+              {[0, 1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce opacity-80"
+                  style={{ animationDelay: `${i * 0.15}s` }}
+                />
+              ))}
             </div>
-            {/* Cancel */}
+            {/* Cancel Button */}
             <button
               onClick={cancelScan}
-              className="text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline transition-colors"
+              className="mt-2 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground hover:text-destructive border border-border/60 rounded-full hover:border-destructive/30 transition-all active:scale-95"
             >
-              Cancel
+              Cancel Scan
             </button>
           </div>
         ) : (
@@ -108,87 +119,22 @@ const RfidScanner = ({ onScan, isScanning, setIsScanning }: RfidScannerProps) =>
             )}
 
             {/* ── Scan buttons — trigger real serial read ── */}
-            <div className="flex gap-2 justify-center flex-wrap">
+            <div className="flex justify-center">
               <Button
-                size="sm"
-                onClick={() => requestScan("Waiting for card scan… (Known Patient)")}
-                disabled={!isConnected}
-                title={!isConnected ? "Connect a COM port first" : "Tap a registered card on the reader"}
+                size="lg"
+                className="w-full max-w-xs h-12 shadow-sm font-bold text-base"
+                onClick={() => requestScan("Waiting for RFID card swipe...")}
+                disabled={!isConnected || disabled}
+                title={!isConnected ? "Connect a COM port first" : disabled ? "Scan result active" : "Tap any RFID card on the reader"}
               >
-                <CreditCard className="h-3 w-3 mr-1" />
-                Scan Known Card
-              </Button>
-
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => requestScan("Waiting for card scan… (New/Unknown)")}
-                disabled={!isConnected}
-                title={!isConnected ? "Connect a COM port first" : "Tap any card to check if it's registered"}
-              >
-                <CreditCard className="h-3 w-3 mr-1" />
-                Scan Unknown Card
+                <Wifi className="h-5 w-5 mr-2" />
+                Scan
               </Button>
             </div>
           </div>
         )}
       </div>
 
-      {/* ── DEBUG PANEL ── */}
-      <div className="rounded-lg border border-border bg-card overflow-hidden">
-        <button
-          onClick={() => setShowDebug(!showDebug)}
-          className="flex w-full items-center justify-between p-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:bg-secondary/50 transition-colors"
-        >
-          <div className="flex items-center gap-2">
-            <Bug className="h-3.5 w-3.5 text-warning" />
-            Serial Connection Debugger
-          </div>
-          {showDebug ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-        </button>
-
-        {showDebug && (
-          <div className="border-t border-border bg-secondary/30 p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-muted-foreground block text-[10px] uppercase font-bold">Status</span>
-                <span className={`font-mono text-xs font-bold ${isConnected ? "text-success" : "text-destructive"}`}>
-                  {isConnected ? "CONNECTED" : "DISCONNECTED"}
-                </span>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 text-[10px] px-3 font-bold"
-                onClick={() => window.electronAPI.pingSerialBridge()}
-              >
-                Test System Bridge
-              </Button>
-            </div>
-
-            <div className="space-y-1.5 pt-2 border-t border-border">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase">Live Hardware Stream</span>
-              <div className="h-32 rounded border border-border bg-background p-2 font-mono text-[10px] overflow-y-auto space-y-1 select-text">
-                {rawLog.length === 0 ? (
-                  <p className="text-muted-foreground italic">No data received yet. Waiting for COM port input...</p>
-                ) : (
-                  rawLog.map((log, i) => (
-                    <div key={i} className="flex gap-2">
-                      <span className="text-muted-foreground opacity-50">[{rawLog.length - i}]</span>
-                      <span className={log.includes('PONG') || log.startsWith('---') ? "text-primary font-bold" : "text-foreground"}>
-                        {log}
-                      </span>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-            <p className="text-[9px] text-muted-foreground italic leading-relaxed">
-              * The bridge test sends a dummy signal from the system to this panel. If it works but scanning doesn't, the issue is with your hardware/serial cable.
-            </p>
-          </div>
-        )}
-      </div>
     </div>
   );
 };

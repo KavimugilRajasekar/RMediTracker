@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 
 const DoctorDashboard = () => {
-  const [patients] = useState<Patient[]>(() => getPatients());
+  const [patients, setPatients] = useState<Patient[]>(() => getPatients());
   const [visits, setVisits] = useState<Visit[]>(() => getVisits());
   const [consultations, setConsultations] = useState<Consultation[]>(() => getConsultations());
   const [selectedVisit, setSelectedVisit] = useState<{ visit: Visit; patient: Patient } | null>(null);
@@ -33,6 +33,18 @@ const DoctorDashboard = () => {
   const highlightRef = useRef<string | null>(null);          // highlighted visit ID
 
   const { isConnected, lastScan, rawLog } = useSerial();
+
+  // ── Sync with Store ────────────────────────────────────────────────────────
+  const refresh = () => {
+    setPatients(getPatients());
+    setVisits(getVisits());
+    setConsultations(getConsultations());
+  };
+
+  useEffect(() => {
+    const interval = setInterval(refresh, 5000); // Poll for updates every 5s
+    return () => clearInterval(interval);
+  }, []);
 
   // ── Derived ──────────────────────────────────────────────────────────────────
   const arrivedVisits = visits.filter(v => v.status === "Arrived");
@@ -312,35 +324,6 @@ const DoctorDashboard = () => {
                     </div>
                   )}
 
-                  <div className="pt-2 border-t border-border">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 px-1">
-                        <Bug className="h-3 w-3" /> Live Hardware output
-                      </span>
-                      <button
-                        onClick={() => window.electronAPI.pingSerialBridge()}
-                        className="text-[9px] px-2 py-0.5 rounded border border-border hover:bg-secondary transition-colors"
-                      >
-                        Test Bridge
-                      </button>
-                    </div>
-
-                    <div className="h-32 rounded border border-border bg-secondary/20 p-2 font-mono text-[9px] overflow-y-auto space-y-1 select-text">
-                      {rawLog.length === 0 ? (
-                        <p className="text-muted-foreground italic">Connect COM port to see data...</p>
-                      ) : (
-                        rawLog.map((log, i) => (
-                          <div key={i} className="flex gap-2">
-                            <span className="text-muted-foreground opacity-50">[{rawLog.length - i}]</span>
-                            <span className={log.startsWith('---') ? "text-primary font-bold" : "text-foreground"}>
-                              {log}
-                            </span>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-
                   {/* Simulate button */}
                   <Button variant="outline" size="sm" className="w-full h-8 text-[10px] mt-4 opacity-50 hover:opacity-100" onClick={handleSimulateScan}>
                     Simulate Scan for UI testing
@@ -429,9 +412,20 @@ const DoctorDashboard = () => {
                               </p>
                             </div>
                           </div>
-                          <Button size="sm" className="shadow-sm" onClick={() => handleOpenConsultation(visit)}>
-                            Consult
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 w-8 p-0"
+                              title="View History"
+                              onClick={() => handleOpenConsultation(visit)}
+                            >
+                              <History className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                            <Button size="sm" className="shadow-sm h-8" onClick={() => handleOpenConsultation(visit)}>
+                              Consult
+                            </Button>
+                          </div>
                         </div>
                       );
                     })}

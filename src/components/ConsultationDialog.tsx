@@ -5,9 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Consultation, Patient, Prescription } from "@/types/patient";
-import { mockConsultations } from "@/data/mockData";
+import { getConsultations } from "@/lib/store";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Trash2, FileText, Pill, Calendar } from "lucide-react";
+import { Plus, Trash2, FileText, Pill, Calendar, History as HistoryIcon } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -26,7 +26,7 @@ const ConsultationDialog = ({ open, onClose, patient, visitId, onSave }: Props) 
   ]);
 
   const pastConsultations = patient
-    ? mockConsultations.filter((c) => c.patientId === patient.patientId)
+    ? getConsultations().filter((c) => c.patientId === patient.patientId)
     : [];
 
   const addPrescription = () => {
@@ -95,30 +95,54 @@ const ConsultationDialog = ({ open, onClose, patient, visitId, onSave }: Props) 
 
         {/* Past Records */}
         {pastConsultations.length > 0 && (
-          <div className="space-y-2">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Past Consultations
+          <div className="space-y-3">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-2">
+              <HistoryIcon className="h-3 w-3" />
+              Medical History
             </h4>
-            {pastConsultations.map((c) => (
-              <div key={c.id} className="rounded-lg border border-border p-3 space-y-1">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-semibold text-foreground">{c.diagnosis}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {new Date(c.createdAt).toLocaleDateString()}
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground">{c.clinicalNotes}</p>
-                {c.prescriptions.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {c.prescriptions.map((p) => (
-                      <span key={p.id} className="inline-flex items-center gap-1 rounded bg-primary/10 px-2 py-0.5 text-xs text-primary">
-                        <Pill className="h-3 w-3" /> {p.medication}
+            <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+              {pastConsultations.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((c) => (
+                <div key={c.id} className="rounded-xl border border-primary/10 bg-primary/5 p-4 space-y-2 group hover:border-primary/30 transition-all">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="text-sm font-bold text-foreground block">{c.diagnosis}</span>
+                      <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">
+                        {new Date(c.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </span>
-                    ))}
+                    </div>
                   </div>
-                )}
-              </div>
-            ))}
+
+                  {c.clinicalNotes && (
+                    <p className="text-xs text-muted-foreground leading-relaxed italic border-l-2 border-primary/20 pl-2">
+                      {c.clinicalNotes}
+                    </p>
+                  )}
+
+                  {c.prescriptions.length > 0 && (
+                    <div className="space-y-1.5 pt-1">
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Prescribed Medication</p>
+                      <div className="grid grid-cols-1 gap-2">
+                        {c.prescriptions.map((p) => (
+                          <div key={p.id} className="flex items-center justify-between rounded-lg bg-background/50 border border-border/50 p-2 text-xs">
+                            <div className="flex items-center gap-2">
+                              <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center">
+                                <Pill className="h-3 w-3 text-primary" />
+                              </div>
+                              <span className="font-bold text-foreground">{p.medication}</span>
+                            </div>
+                            <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+                              <span className="bg-secondary px-1.5 py-0.5 rounded">{p.dosage}</span>
+                              <span className="bg-secondary px-1.5 py-0.5 rounded">{p.frequency}</span>
+                              <span className="bg-secondary px-1.5 py-0.5 rounded">{p.duration}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

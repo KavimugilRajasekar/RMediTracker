@@ -154,6 +154,20 @@
       opacity: 1;
     }
   }
+
+  .animate-cooldown {
+    animation: cooldown linear forwards;
+  }
+
+  @keyframes cooldown {
+    from {
+      width: 100%;
+    }
+
+    to {
+      width: 0%;
+    }
+  }
 }
 
 /* ── Modern thin native scrollbar (Webkit) ──────────────────────────────── */

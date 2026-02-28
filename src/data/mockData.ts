@@ -37,14 +37,6 @@ export const mockPatients: Patient[] = [
     registeredAt: "2024-03-05",
   },
   {
-    id: "5", patientId: "PT-2024-005",
-    firstName: "Manoj", lastName: "Singh",
-    age: 62, gender: "Male", phone: "+91 88776 65544", address: "Village Bhoomipur, Block D",
-    rfidUid: "7D8E9F0A",
-    rfidHistory: [{ uid: "7D8E9F0A", issuedAt: "2024-03-18" }],
-    registeredAt: "2024-03-18",
-  },
-  {
     id: "6", patientId: "PT-2024-006",
     firstName: "Priya", lastName: "Verma",
     age: 34, gender: "Female", phone: "+91 77665 54433", address: "Village Lakshmipur, Block B",
@@ -173,14 +165,6 @@ export const mockPatients: Patient[] = [
     registeredAt: "2024-11-29",
   },
   {
-    id: "22", patientId: "PT-2024-022",
-    firstName: "Annapurna", lastName: "Das",
-    age: 39, gender: "Female", phone: "+91 71234 56890", address: "Village Subhashpur, Block B",
-    rfidUid: "822CE55C",
-    rfidHistory: [{ uid: "822CE55C", issuedAt: "2024-12-10" }],
-    registeredAt: "2024-12-10",
-  },
-  {
     id: "23", patientId: "PT-2024-023",
     firstName: "Balaji", lastName: "Krishnan",
     age: 33, gender: "Male", phone: "+91 60123 45678", address: "Village Muniswamypur, Block C",
@@ -223,7 +207,7 @@ export const mockConsultations: Consultation[] = [
   },
 ];
 
-let nextPatientNum = 23;
+let nextPatientNum = 24;
 export const generatePatientId = () => {
   const id = `PT-2024-${String(nextPatientNum).padStart(3, "0")}`;
   nextPatientNum++;

@@ -16,6 +16,9 @@ export const addPatient = (p: Patient) => { patients = [...patients, p]; };
 export const updatePatient = (patientId: string, changes: Partial<Patient>) => {
     patients = patients.map(p => p.patientId === patientId ? { ...p, ...changes } : p);
 };
+export const deletePatient = (patientId: string) => {
+    patients = patients.filter(p => p.patientId !== patientId);
+};
 
 // ── Visits ────────────────────────────────────────────────────────────────────
 export const getVisits = (): Visit[] => [...visits];

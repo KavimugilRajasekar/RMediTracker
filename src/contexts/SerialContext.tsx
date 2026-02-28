@@ -11,6 +11,8 @@ interface SerialContextType {
     rawLog: string[];        // recent history for debugging
     connect: (port: string, baudRate: number) => Promise<boolean>;
     disconnect: () => Promise<void>;
+    clearLog: () => void;
+    resetScanData: () => void;
     listPorts: () => Promise<{ path: string; friendlyName?: string }[]>;
 }
 
@@ -126,8 +128,18 @@ export const SerialProvider = ({ children }: { children: ReactNode }) => {
         setRawLog(prev => ["--- Disconnected ---", ...prev].slice(0, 50));
     };
 
+    const clearLog = () => {
+        setRawLog([]);
+    };
+
+    const resetScanData = () => {
+        setLastScan(null);
+        rollingBuffer.current = "";
+        console.log("🧹 Scan data and buffer force-cleared.");
+    };
+
     return (
-        <SerialContext.Provider value={{ isConnected, selectedPort, lastScan, rawData, rawLog, connect, disconnect, listPorts }}>
+        <SerialContext.Provider value={{ isConnected, selectedPort, lastScan, rawData, rawLog, connect, disconnect, clearLog, resetScanData, listPorts }}>
             {children}
         </SerialContext.Provider>
     );
