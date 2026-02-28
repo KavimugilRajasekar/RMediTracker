@@ -101,6 +101,7 @@
   "build": {
     "appId": "com.rmeditracker.app",
     "productName": "RMediTracker",
+    "npmRebuild": false,
     "copyright": "Copyright © 2025 RMediTracker Team",
     "files": [
       "dist/**/*",
@@ -126,8 +127,7 @@
             "x64"
           ]
         }
-      ],
-      "artifactName": "RMediTracker-Setup-${version}.${ext}"
+      ]
     },
     "nsis": {
       "oneClick": false,
