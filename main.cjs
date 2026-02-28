@@ -13,6 +13,7 @@ function createWindow() {
         minHeight: 600,
         frame: false,
         titleBarStyle: 'hidden',
+        icon: path.join(__dirname, 'public/RMediTracker.ico'),
         webPreferences: {
             preload: path.join(__dirname, 'preload.cjs'),
             contextIsolation: true,
